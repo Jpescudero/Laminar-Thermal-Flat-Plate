@@ -8,17 +8,22 @@ from scipy.integrate import odeint,RK45
 ## Problem Specification
 ## ===========================================================
 
-U     = 10
+ue     = 1
 nu    = 1.7894*10e-5
 
-## Non dimensional Suction Velocity (~-1 or -2) maximum vw = 0.619 provokes separation 
-vw    = 0 
+## Non dimensional Suction Velocity (~-1 or -2) 
+vw    = 0
+
+# Length of the plate
+L    = 1
 
 # Definition of the flat plate X = 1 grid
-L    = 1
-n    = 11
-x    = np.linspace(0,L,n)
+n    = 100
+x    = np.linspace(0,L,n+1)
 x[0] = 10e-20
+
+## Mesh Y Grid boundary layer height
+y = np.linspace(0,0.1,200)
 
 ## Phisic Model 
 ## ===========================================================
@@ -36,7 +41,7 @@ def error_function(phi0,phi1,s0,s1):
 ## Initial Vectors
 ## ===========================================================
 
-n     = 200
+n     = 300
 eta_f =	50
 eta   = np.linspace(0, eta_f, n+1)
 
@@ -65,7 +70,7 @@ beta  = 1.0
 ## ===========================================================
 
 ## Plotting Error Function to know the zeros
-s_guesses = np.linspace(0.01,5.0)
+s_guesses = np.linspace(0.1,0.8)
 
 phi = []
 for s_guess in s_guesses:
@@ -81,7 +86,7 @@ plt.xlabel('s')
 plt.grid(b=True, which='both')
 
 ## Guessed values after seeing zeros at Phi plot
-s=[0.1,0.8]
+s=[0.01,0.8]
 
 ## ODE solver : Shooting Method
 ## ===========================================================
@@ -92,7 +97,7 @@ f        = odeint(fblasius,finit,eta)
 phi0     = f[-1][1] - beta
 
 # Number of max
-nmax=10
+nmax= 100
 eps = 1.0e-3
 
 
@@ -125,17 +130,20 @@ f, fd, fdd = f[:,0], f[:,1], f[:,2]
 ## Post analysis
 ## ===========================================================
 
+## X analysis
+## ***********************************************************
+
 # Velocity
-u = U * fd
+u = ue * fd
 
 # Reynolds x
-Rex = U*x/nu
+Rex = ue*x/nu
 
 # Boundary layer thichkness with x
 delta = 5.2*x/(Rex**0.5)
 
 # Boundary layer displacement thichkness with x
-delta_s = 1.72*x/(Rex**0.5)
+delta_s = 1.721*x/(Rex**0.5)
 
 # Boundary layer momentum thichkness with x
 delta_ss = 0.664*x/(Rex**0.5)
@@ -144,30 +152,20 @@ delta_ss = 0.664*x/(Rex**0.5)
 cf = 0.664/(Rex**0.5)
 cf[0] = 0
 
-## Mesh Y Grid boundary layer height
-y = []
-eta_grid = []
-u_grid   = []
+## Grid Real Velocities
+## ***********************************************************
 
-Y = {}
-U_y = {}
+# Grid Generation
+X, Y = np.meshgrid(x, y)
 
-for i in range(len(x)):
+# Eta for each point of the grid
+ETA = (ue/(2*nu*X))**0.5 * Y
 
-	# Definition of a vector o y until boundary layer height (list of a list)
-	y.append(np.linspace(0,delta[i],100))
+# U for each point of the grid
+U = ue * np.interp(ETA, eta, fd)
 
-	# Dictionary
-	Y[str(x[i])] = np.linspace(0,delta[i],100)
-
-	# Definition of equivalent eta for each point of the grid
-	eta_grid.append((U/(2*nu*x[i]))**0.5 * y[-1])
-
-	# Velocity Calculation
-	u_grid.append(U * np.interp(eta_grid[-1], eta, fd))
-
-	# Dictionary
-	U_y[str(x[i])] = U * np.interp(eta_grid[-1], eta, fd)
+# V for each point of the grid
+V = ((nu*ue)/(2*X))**0.5 * (ETA*np.interp(ETA, eta, fd) - np.interp(ETA, eta, f))
 
 
 ## Plots
@@ -187,7 +185,7 @@ plt.grid()
 
 ## Velocity-eta
 fig3 = plt.figure(3)
-plt.plot(eta, u/U,'k-',linewidth=2,label=r' $U/u_e$')
+plt.plot(eta, u/ue,'k-',linewidth=2,label=r' $U/u_e$')
 plt.title('Blasius Flat plate velocity')
 plt.xlabel(r' $\eta$')
 plt.ylabel(r' $U/u_e$')
@@ -226,12 +224,51 @@ plt.grid()
 
 ## velocity profile plot
 fig6 = plt.figure(6)
-plt.plot((u_grid[3])/U,y[3]/delta[3],'k-',linewidth=2,label=r' $x = 0.33$')
-plt.title('Blasius Flat plate velocity profile x=0.33m')
-plt.xlabel(r' $u/U$')
-plt.ylabel(r' $y/\delta$')
-plt.xlim(0,1)
-plt.ylim(0,1)
-plt.legend(loc = 'upper left')
-plt.grid()
+plt.pcolor(X, Y, U)
+plt.plot(x,delta)
 plt.show()
+
+
+## Write Data
+## ===========================================================
+
+## Non Dimensional Data
+## ***********************************************************
+
+# vw = str(vw)
+
+# # f
+# f_write = {'eta': eta, 'f': f}
+# f_write = pd.DataFrame(data=f)
+# f_write.to_csv("f_vw=" + str(vw) +".csv")
+
+# # fd
+# fd_write = {'eta': eta, 'fd': fd}
+# fd_write = pd.DataFrame(data=fd)
+# fd_write.to_csv("fd_vw=" + str(vw) + ".csv")
+
+# # fdd
+# fdd_write = {'eta': eta, 'fdd': fdd}
+# fdd_write = pd.DataFrame(data=fdd)
+# fdd_write.to_csv("fdd_vw=" + str(vw) + ".csv")
+
+
+# ## Data along x
+# ## ***********************************************************
+
+# ## Suction = 0
+# X = {'x': x, 'Rex': Rex, 'delta': delta, 'delta_s': delta_s, 'delta_ss': delta_ss,'cf': cf}
+# X = pd.DataFrame(data=X)
+# X.to_csv("x_BL_values"+ "_U="+ str(U) +".csv")
+
+# ## Grid Data
+# ## ***********************************************************
+
+# ## Suction = 0
+# # Y data for each station
+# Y = pd.DataFrame(data=Y)
+# Y.to_csv("y_xstations"+ "_U="+ str(U) +".csv")
+
+# # U(Y) data for each station
+# U_y = pd.DataFrame(data=U_y)
+# U_y.to_csv("u(y)_xstations" + "_U="+ str(U) +".csv")

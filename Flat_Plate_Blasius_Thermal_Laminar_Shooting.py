@@ -7,7 +7,7 @@ import csv
 ## Problem Specification
 ## ===========================================================
 
-ue   = 10
+ue   = 10000
 P    = 101325
 T    = 300 
 
@@ -42,6 +42,8 @@ print("Re =")
 print(round(Re,0))
 print()
 
+y_max = L/(Re)**0.5
+
 # Prant number
 Pr   = cp*mu/k
 
@@ -58,7 +60,7 @@ x    = np.linspace(0,L,n+1)
 x[0] = 10e-20
 
 ## Mesh Y Grid boundary layer height
-y = np.linspace(0,0.4,300)
+y = np.linspace(0,50*y_max,300)
 
 ## Lineal Vector of etas
 n     = 200
@@ -271,6 +273,10 @@ delta_s = (((2)**0.5) * (f[-1]-f[-2])/(eta[-1]-eta[-2])*x)/(Rex**0.5)
 # Boundary layer momentum thichkness with x
 delta_ss = 2*(fdd[0]/(2**0.5))*x/(Rex**0.5)
 
+
+# Shape factor
+H = delta_s/delta_ss
+
 # Shear Stress
 tp = fdd[0]*mu*ue*((ue)/(2*nu*x))**0.5
 tp[0] = tp[1] - ((tp[1]-tp[2])/(x[1]-x[2]))*x[1]
@@ -282,12 +288,28 @@ cf[0] = cf[1] - ((cf[1]-cf[2])/(x[1]-x[2]))*x[1]
 # Nusselt number
 Nu = - (Rex/2)**0.5 * thetad[0]
 
+# x transition: Micjel Criteria (Only valid for Re between 4x10e5 - 7x10e6)
+for i in range(len(x)):
+	if (delta_ss[i] * ue)/nu > 1.535 * ((ue*x[i])/nu)**0.444:
+		xt = x[i]
+		break
+	else:
+		xt = 0 
+
+print("x transition: Michel´s Criteria (Only valid for Re between 4x10e5 - 7x10e6)")
+if xt ==0:
+	print("No transition")
+	print()
+else:	
+	print("xt =", round(xt,2), "m")
+	print()
+
 ## Drag 
 D  = 2 * w * np.trapz(tp, x)
 Cd = (2*D)/(rho*ue**2*w*L)
 
-print("Drag Cd =")
-print(round(Cd,4))
+print("Drag")
+print("Cd =",round(Cd,4))
 
 ## Grid Real Velocities
 ## ***********************************************************
@@ -313,7 +335,7 @@ plt.plot(eta,fd ,'b-',linewidth=2,label='f´')
 plt.plot(eta,fdd ,'g-',linewidth=2,label='f´´' )
 plt.title('Blasius Flat plate functions')
 plt.xlabel(r' $\eta$')
-plt.xlim(0,10)
+plt.xlim(0,4)
 plt.ylim(0,5)
 plt.legend()
 plt.grid()
@@ -337,12 +359,15 @@ fig4 = plt.figure(4)
 plt.pcolor(X, Y, U)
 plt.plot(x, delta,'b-',linewidth=2,label=r' $\delta$')
 plt.plot(x, delta_s,'r-',linewidth=2,label=r' $\delta^*$')
-plt.plot(x, delta_ss,'g-',linewidth=2,label=r' $\delta^**$')
+plt.plot(x, delta_ss,'c-',linewidth=2,label=r' $\delta^{**}$')
+if xt !=0:
+	plt.plot(np.ones(len(y[:2]))*xt, y[:2],'m-',linewidth=2,label=r' $x_{transition}$')
 plt.title('Blasius Flat plate boundary layer')
-plt.xlabel(r' $x$')
-#plt.ylabel(r' $U/u_e$')
+plt.xlabel(r' $x(m)$')
+plt.ylabel(r' $y(m)$')
 plt.xlim(0,1)
-plt.ylim(0,0.1)
+plt.ylim(0,8*y_max)
+plt.colorbar()
 plt.legend()
 plt.grid()
 #plt.show()
@@ -358,16 +383,18 @@ plt.xlim(0,1)
 plt.legend()
 plt.grid()
 
+## tp-x plot
 fig6 = plt.figure(6)
-plt.plot(x, cf,'k-',linewidth=2,label=r' $C_f$')
-plt.title('Blasius Flat plate Skin Friction')
+plt.plot(x, tp,'k-',linewidth=2,label=r' $\tau_p$')
+plt.title('Blasius Flat plate wall shear stress at the wall')
 plt.xlabel(r' $x$')
-plt.ylabel(r' $C_f$')
+plt.ylabel(r' $\tau_p$')
 plt.xlim(0,1)
-#plt.ylim(0,1)
 plt.legend()
 plt.grid()
 
+
+## theta-eta plot
 fig7 = plt.figure(7)
 plt.plot(eta,theta,linewidth=2,label="Pr = " + str(round(Pr,3)))
 plt.title('Thermal Boundary Layer')
@@ -379,7 +406,7 @@ plt.legend()
 plt.grid()
 
 #plt.show()
-
+## Temperature Plot
 fig8 = plt.figure(8)
 plt.pcolor(X, Y, Temp)
 plt.title('Thermal Boundary Layer: Temperature Distribution (K)')
@@ -388,23 +415,43 @@ plt.xlabel(r' $x$')
 plt.ylabel(r' $y$')
 
 
+
 ## Write Data
 ## ===========================================================
 
 ## Non Dimensional Data
 ## ***********************************************************
 
-# f
-f_write = {'eta': eta, 'f': f, 'fd': fd, 'fdd': fdd, 'theta': theta, 'thetad': thetad}
-f_write = pd.DataFrame(data=f)
-f_write.to_csv("eta_f_fd_fdd_theta_thetad.csv")
+df = {'eta': eta, 'f': f, 'fd': fd, 'fdd': fdd, 'theta': theta, 'thetad': thetad}
+df = pd.DataFrame(data=f)
+df.to_csv("eta_f_fd_fdd_theta_thetad.csv")
 
 
 ## Data along x
 ## ***********************************************************
 
-X = {'x': x, 'Rex': Rex, 'delta': delta, 'delta_s': delta_s, 'delta_ss': delta_ss,'cf': cf, 'tp': tp, 'Nu': Nu}
-X = pd.DataFrame(data=X)
-X.to_csv("x_Rex_delta_deltas_deltass_cf_tp" +".csv")
+df = {'x': x, 'Rex': Rex, 'delta': delta, 'delta_s': delta_s, 'delta_ss': delta_ss,'cf': cf, 'tp': tp, 'Nu': Nu}
+df = pd.DataFrame(data=X)
+df.to_csv("x_Rex_delta_deltas_deltass_cf_tp" +".csv")
+
+
+
+## Problem Parameters
+## ***********************************************************
+df = {'ue (m/s)': ue, 'Re': Re, 'P (Pascal)': P, 'T (Kelvin)': T, 'Tp (Kelvin)': Tp,'vw (suction)': vw , 'L (m)': L, 'w(witdh)(m)': w , 'k(Air thermal cond)': k, 'Cp(Air cp)': cp}
+df = pd.DataFrame(data=X)
+df.to_csv("problem_parameters" +".csv")
+
+
+## Grid Values
+## ***********************************************************
+df = pd.DataFrame(np.array([X, Y, U]).reshape(3, -1).T, columns={"X","Y","U"})
+df.to_csv("u(x,y)" +".csv")
+
+df = pd.DataFrame(np.array([X, Y, V]).reshape(3, -1).T, columns={"X","Y","V"})
+df.to_csv("v(x,y)" +".csv")
+
+df = pd.DataFrame(np.array([X, Y, T]).reshape(3, -1).T, columns={"X","Y","T"})
+df.to_csv("T(x,y)" +".csv")
 
 plt.show()

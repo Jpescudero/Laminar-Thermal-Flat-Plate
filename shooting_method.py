@@ -12,7 +12,7 @@ ue     = 1
 nu    = 1.7894*10e-5
 
 ## Non dimensional Suction Velocity (~-1 or -2) 
-vw    = 0
+vw    = 0.5
 
 # Length of the plate
 L    = 1
@@ -23,7 +23,7 @@ x    = np.linspace(0,L,n+1)
 x[0] = 10e-20
 
 ## Mesh Y Grid boundary layer height
-y = np.linspace(0,0.1,200)
+y = np.linspace(0,0.2,200)
 
 ## Phisic Model 
 ## ===========================================================
@@ -70,7 +70,7 @@ beta  = 1.0
 ## ===========================================================
 
 ## Plotting Error Function to know the zeros
-s_guesses = np.linspace(0.1,0.8)
+s_guesses = np.linspace(0.01,0.8)
 
 phi = []
 for s_guess in s_guesses:
@@ -140,16 +140,18 @@ u = ue * fd
 Rex = ue*x/nu
 
 # Boundary layer thichkness with x
-delta = 5.2*x/(Rex**0.5)
+
+delta = np.interp(0.994, fd, eta)*(2**0.5)*x/(Rex**0.5)
 
 # Boundary layer displacement thichkness with x
-delta_s = 1.721*x/(Rex**0.5)
+# eta- f when eta = inf
+delta_s = (((2)**0.5) * (f[-1]-f[-2])/(eta[-1]-eta[-2])*x)/(Rex**0.5)
 
 # Boundary layer momentum thichkness with x
-delta_ss = 0.664*x/(Rex**0.5)
+delta_ss = 2*(fdd[0]/(2**0.5))*x/(Rex**0.5)
 
 # Friction coefficient with x
-cf = 0.664/(Rex**0.5)
+cf = 2*(fdd[0]/(2**0.5))/(Rex**0.5)
 cf[0] = 0
 
 ## Grid Real Velocities
@@ -177,8 +179,8 @@ plt.plot(eta,fd ,'b-',linewidth=2,label='f´')
 plt.plot(eta,fdd ,'g-',linewidth=2,label='f´´' )
 plt.title('Blasius Flat plate functions')
 plt.xlabel(r' $\eta$')
-plt.xlim(0,4)
-plt.ylim(0,2)
+plt.xlim(0,10)
+plt.ylim(0,5)
 plt.legend()
 plt.grid()
 
@@ -196,11 +198,12 @@ plt.grid()
 #plt.show()
 
 
-## f-eta plot
+## Boundary Layer plot
 fig4 = plt.figure(4)
+plt.pcolor(X, Y, U)
 plt.plot(x, delta,'b-',linewidth=2,label=r' $\delta$')
 plt.plot(x, delta_s,'r-',linewidth=2,label=r' $\delta^*$')
-plt.plot(x, delta_ss,'g-',linewidth=2,label=r' $\delta^**$')
+plt.plot(x, delta_ss,'k-',linewidth=2,label=r' $\delta^**$')
 plt.title('Blasius Flat plate boundary layer')
 plt.xlabel(r' $x$')
 #plt.ylabel(r' $U/u_e$')
@@ -220,12 +223,7 @@ plt.xlim(0,1)
 #plt.ylim(0,1)
 plt.legend()
 plt.grid()
-#plt.show()
 
-## velocity profile plot
-fig6 = plt.figure(6)
-plt.pcolor(X, Y, U)
-plt.plot(x,delta)
 plt.show()
 
 
@@ -260,15 +258,3 @@ plt.show()
 # X = {'x': x, 'Rex': Rex, 'delta': delta, 'delta_s': delta_s, 'delta_ss': delta_ss,'cf': cf}
 # X = pd.DataFrame(data=X)
 # X.to_csv("x_BL_values"+ "_U="+ str(U) +".csv")
-
-# ## Grid Data
-# ## ***********************************************************
-
-# ## Suction = 0
-# # Y data for each station
-# Y = pd.DataFrame(data=Y)
-# Y.to_csv("y_xstations"+ "_U="+ str(U) +".csv")
-
-# # U(Y) data for each station
-# U_y = pd.DataFrame(data=U_y)
-# U_y.to_csv("u(y)_xstations" + "_U="+ str(U) +".csv")

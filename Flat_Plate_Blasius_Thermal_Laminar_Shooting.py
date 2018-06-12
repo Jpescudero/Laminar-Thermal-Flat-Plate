@@ -437,8 +437,8 @@ df.to_csv("x_Rex_delta_deltas_deltass_cf_tp" +".csv")
 
 ## Problem Parameters
 ## ***********************************************************
-df = {'ue (m/s)': ue, 'Re': Re, 'P (Pascal)': P, 'T (Kelvin)': T, 'Tp (Kelvin)': Tp,'vw (suction)': vw , 'L (m)': L, 'w(witdh)(m)': w , 'k(Air thermal cond)': k, 'Cp(Air cp)': cp}
-df = pd.DataFrame(data=df)
+df = {'ue (m/s)': ue, 'Re': round(Re,0), 'P (Pascal)': P, 'T (Kelvin)': T, 'Tp (Kelvin)': Tp,'vw (suction)': vw , 'L (m)': L, 'w(witdh)(m)': w , 'k(Air thermal cond)': k, 'Cp(Air cp)': cp}
+df = pd.DataFrame(data=df,index=[0])
 df.to_csv("problem_parameters" +".csv")
 
 
